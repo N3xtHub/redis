@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!-- saved from url=(0029)http://redis.io/topics/config -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <link href="./Redis configuration – Redis_files/styles.css" rel="stylesheet" type="text/css">
+    <link href="http://redis.io/images/favicon.png" rel="shortcut icon">
+    <link href="http://redis.io/opensearch.xml" rel="search" title="Look up a Redis command" type="application/opensearchdescription+xml">
+    <meta content="width=device-width, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
+    <title>
+      Redis configuration – Redis
+    </title>
+    <script type="text/javascript" async="" src="./Redis configuration – Redis_files/ga.js"></script><script type="text/javascript">
+      //<![CDATA[
+         var _gaq = _gaq || [];
+         _gaq.push(['_setAccount', 'UA-20243082-1']);
+         _gaq.push(['_trackPageview']);
+        
+         (function() {
+           var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+           ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+           var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+         })();
+      //]]>
+    </script>
+  </head>
+  <body class="topics config">
+    <div class="mobile-menu slideout-menu slideout-menu">
+      <header class="menu-header"></header>
+      <section class="menu-section">
+        <ul class="menu-section-list">
+          <li>
+            <a class="home" href="http://redis.io/">Home</a>
+          </li>
+          <li>
+            <a href="http://redis.io/commands">Commands</a>
+          </li>
+          <li>
+            <a href="http://redis.io/clients">Clients</a>
+          </li>
+          <li>
+            <a href="http://redis.io/documentation">Documentation</a>
+          </li>
+          <li>
+            <a href="http://redis.io/community">Community</a>
+          </li>
+          <li>
+            <a href="http://redis.io/download">Download</a>
+          </li>
+          <li>
+            <a href="http://redis.io/support">Support</a>
+          </li>
+          <li>
+            <a href="http://redis.io/topics/license">License</a>
+          </li>
+        </ul>
+      </section>
+    </div>
+    <div class="site-wrapper slideout-panel">
+      <header class="site-header">
+        <nav class="container">
+          <div class="mobile-header">
+            <button class="btn-hamburger js-slideout-toggle">
+              <span class="fa fa-bars"></span>
+            </button>
+            <a class="home" href="http://redis.io/">
+              <img alt="Redis" src="./Redis configuration – Redis_files/redis-white.png">
+            </a>
+          </div>
+          <div class="desktop-header">
+            <a class="home" href="http://redis.io/">
+              <img alt="Redis" src="./Redis configuration – Redis_files/redis-white.png">
+            </a>
+            <a href="http://redis.io/commands">Commands</a>
+            <a href="http://redis.io/clients">Clients</a>
+            <a href="http://redis.io/documentation">Documentation</a>
+            <a href="http://redis.io/community">Community</a>
+            <a href="http://redis.io/download">Download</a>
+            <a href="http://redis.io/support">Support</a>
+            <a href="http://redis.io/topics/license">License</a>
+          </div>
+        </nav>
+      </header>
+      <div class="site-content">
+        <div class="text">
+          <article id="topic">
+            <span id="redis-configuration" class="anchor"></span><h1><a href="http://redis.io/topics/config#redis-configuration" class="anchor-link">*</a>Redis configuration</h1>
+            
+            <p>Redis is able to start without a configuration file using a built-in default
+            configuration, however this setup is only recommended for testing and
+            development purposes.</p>
+            
+            <p>The proper way to configure Redis is by providing a Redis configuration file,
+            usually called <code>redis.conf</code>.</p>
+            
+            <p>The <code>redis.conf</code> file contains a number of directives that have a very simple
+            format:</p>
+            
+            <pre><code>keyword argument1 argument2 ... argumentN
+</code></pre>
+            
+            <p>This is an example of configuration directive:</p>
+            
+            <pre><code>slaveof 127.0.0.1 6380
+</code></pre>
+            
+            <p>It is possible to provide strings containing spaces as arguments using
+            quotes, as in the following example:</p>
+            
+            <pre><code>requirepass "hello world"
+</code></pre>
+            
+            <p>The list of configuration directives, and their meaning and intended usage
+            is available in the self documented example redis.conf shipped into the
+            Redis distribution.</p>
+            
+            <ul>
+            <li>The self documented <a href="https://raw.githubusercontent.com/antirez/redis/3.0/redis.conf">redis.conf for Redis 3.0</a></li>
+            <li>The self documented <a href="https://raw.githubusercontent.com/antirez/redis/2.8/redis.conf">redis.conf for Redis 2.8</a></li>
+            <li>The self documented <a href="https://raw.githubusercontent.com/antirez/redis/2.6/redis.conf">redis.conf for Redis 2.6</a>.</li>
+            <li>The self documented <a href="https://raw.githubusercontent.com/antirez/redis/2.4/redis.conf">redis.conf for Redis 2.4</a>.</li>
+            </ul>
+            
+            <span id="passing-arguments-via-the-command-line" class="anchor"></span><h2><a href="http://redis.io/topics/config#passing-arguments-via-the-command-line" class="anchor-link">*</a>Passing arguments via the command line</h2>
+            
+            <p>Since Redis 2.6 it is possible to also pass Redis configuration parameters
+            using the command line directly. This is very useful for testing purposes.
+            The following is an example that starts a new Redis instance using port 6380
+            as a slave of the instance running at 127.0.0.1 port 6379.</p>
+            
+            <pre><code>./redis-server --port 6380 --slaveof 127.0.0.1 6379
+</code></pre>
+            
+            <p>The format of the arguments passed via the command line is exactly the same
+            as the one used in the redis.conf file, with the exception that the keyword
+            is prefixed with <code>--</code>.</p>
+            
+            <p>Note that internally this generates an in-memory temporary config file
+            (possibly concatenating the config file passed by the user if any) where
+            arguments are translated into the format of redis.conf.</p>
+            
+            <span id="changing-redis-configuration-while-the-server-is-running" class="anchor"></span><h2><a href="http://redis.io/topics/config#changing-redis-configuration-while-the-server-is-running" class="anchor-link">*</a>Changing Redis configuration while the server is running</h2>
+            
+            <p>It is possible to reconfigure Redis on the fly without stopping and restarting
+            the service, or querying the current configuration programmatically using the
+            special commands <a href="http://redis.io/commands/config-set">CONFIG SET</a> and
+            <a href="http://redis.io/commands/config-get">CONFIG GET</a></p>
+            
+            <p>Not all the configuration directives are supported in this way, but most
+            are supported as expected. Please refer to the
+            <a href="http://redis.io/commands/config-set">CONFIG SET</a> and <a href="http://redis.io/commands/config-get">CONFIG GET</a>
+            pages for more information.</p>
+            
+            <p>Note that modifying the configuration on the fly <strong>has no effects on the
+            redis.conf file</strong> so at the next restart of Redis the old configuration will
+            be used instead.</p>
+            
+            <p>Make sure to also modify the <code>redis.conf</code> file accordingly to the configuration
+            you set using <a href="http://redis.io/commands/config-set">CONFIG SET</a>. You can do it manually, or starting with Redis 2.8, you can just use <a href="http://redis.io/commands/config-rewrite">CONFIG REWRITE</a>, which will automatically scan your <code>redis.conf</code> file and update the fields which don't match the current configuration value. Fields non existing but set to the default value are not added. Comments inside your configuration file are retained.</p>
+            
+            <span id="configuring-redis-as-a-cache" class="anchor"></span><h2><a href="http://redis.io/topics/config#configuring-redis-as-a-cache" class="anchor-link">*</a>Configuring Redis as a cache</h2>
+            
+            <p>If you plan to use Redis just as a cache where every key will have an
+            expire set, you may consider using the following configuration instead
+            (assuming a max memory limit of 2 megabytes as an example):</p>
+            
+            <pre><code>maxmemory 2mb
+maxmemory-policy allkeys-lru
+</code></pre>
+            
+            <p>In this configuration there is no need for the application to set a
+            time to live for keys using the <a href="http://redis.io/commands/expire">EXPIRE</a> command (or equivalent) since
+            all the keys will be evicted using an approximated LRU algorithm as long
+            as we hit the 2 megabyte memory limit.</p>
+            
+            <p>Basically in this configuration Redis acts in a similar way to memcached.
+            We have more extensive documentation about <a href="http://redis.io/topics/lru-cache">using Redis as an LRU cache</a>.</p>
+          </article>
+        </div>
+      </div>
+      <footer class="site-footer">
+        <div class="container">
+          <p>
+            This website is
+            <a href="https://github.com/antirez/redis-io">open source software</a>.
+            See all <a href="http://redis.io/topics/sponsors">credits</a>.
+          </p>
+          <div class="sponsor">
+            Sponsored by
+            <a href="https://redislabs.com/">
+              <img alt="Redis Labs" height="25" src="./Redis configuration – Redis_files/redislabs.png" title="Get a Managed Redis" width="128">
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  
+
+<script src="./Redis configuration – Redis_files/jquery.min.js"></script>
+<script src="./Redis configuration – Redis_files/slideout.js"></script>
+<script src="./Redis configuration – Redis_files/app.js"></script>
+<script type="text/javascript">
+lloogg_clientid = "20bb9c026e";
+</script>
+<script type="text/javascript" src="./Redis configuration – Redis_files/l.js">
+</script>
+</body></html>

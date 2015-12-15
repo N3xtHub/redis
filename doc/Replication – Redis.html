@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<!-- saved from url=(0034)http://redis.io/topics/replication -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <link href="./Replication – Redis_files/styles.css" rel="stylesheet" type="text/css">
+    <link href="http://redis.io/images/favicon.png" rel="shortcut icon">
+    <link href="http://redis.io/opensearch.xml" rel="search" title="Look up a Redis command" type="application/opensearchdescription+xml">
+    <meta content="width=device-width, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
+    <title>
+      Replication – Redis
+    </title>
+    <script type="text/javascript" async="" src="./Replication – Redis_files/ga.js"></script><script type="text/javascript">
+      //<![CDATA[
+         var _gaq = _gaq || [];
+         _gaq.push(['_setAccount', 'UA-20243082-1']);
+         _gaq.push(['_trackPageview']);
+        
+         (function() {
+           var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+           ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+           var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+         })();
+      //]]>
+    </script>
+  </head>
+  <body class="topics replication">
+    <div class="mobile-menu slideout-menu slideout-menu">
+      <header class="menu-header"></header>
+      <section class="menu-section">
+        <ul class="menu-section-list">
+          <li>
+            <a class="home" href="http://redis.io/">Home</a>
+          </li>
+          <li>
+            <a href="http://redis.io/commands">Commands</a>
+          </li>
+          <li>
+            <a href="http://redis.io/clients">Clients</a>
+          </li>
+          <li>
+            <a href="http://redis.io/documentation">Documentation</a>
+          </li>
+          <li>
+            <a href="http://redis.io/community">Community</a>
+          </li>
+          <li>
+            <a href="http://redis.io/download">Download</a>
+          </li>
+          <li>
+            <a href="http://redis.io/support">Support</a>
+          </li>
+          <li>
+            <a href="http://redis.io/topics/license">License</a>
+          </li>
+        </ul>
+      </section>
+    </div>
+    <div class="site-wrapper slideout-panel">
+      <header class="site-header">
+        <nav class="container">
+          <div class="mobile-header">
+            <button class="btn-hamburger js-slideout-toggle">
+              <span class="fa fa-bars"></span>
+            </button>
+            <a class="home" href="http://redis.io/">
+              <img alt="Redis" src="./Replication – Redis_files/redis-white.png">
+            </a>
+          </div>
+          <div class="desktop-header">
+            <a class="home" href="http://redis.io/">
+              <img alt="Redis" src="./Replication – Redis_files/redis-white.png">
+            </a>
+            <a href="http://redis.io/commands">Commands</a>
+            <a href="http://redis.io/clients">Clients</a>
+            <a href="http://redis.io/documentation">Documentation</a>
+            <a href="http://redis.io/community">Community</a>
+            <a href="http://redis.io/download">Download</a>
+            <a href="http://redis.io/support">Support</a>
+            <a href="http://redis.io/topics/license">License</a>
+          </div>
+        </nav>
+      </header>
+      <div class="site-content">
+        <div class="text">
+          <article id="topic">
+            <span id="replication" class="anchor"></span><h1><a href="http://redis.io/topics/replication#replication" class="anchor-link">*</a>Replication</h1>
+            
+            <p>Redis replication is a very simple to use and configure master-slave
+            replication that allows slave Redis servers to be exact copies of
+            master servers. The following are some very important facts about Redis
+            replication:</p>
+            
+            <ul>
+            <li><p>Redis uses asynchronous replication. Starting with Redis 2.8,
+            however, slaves will periodically acknowledge the amount of data
+            processed from the replication stream.</p></li>
+            <li><p>A master can have multiple slaves.</p></li>
+            <li><p>Slaves are able to accept connections from other slaves. Aside from
+            connecting a number of slaves to the same master, slaves can also be
+            connected to other slaves in a graph-like structure.</p></li>
+            <li><p>Redis replication is non-blocking on the master side. This means that
+            the master will continue to handle queries when one or more slaves perform
+            the initial synchronization.</p></li>
+            <li><p>Replication is also non-blocking on the slave side. While the slave is performing
+            the initial synchronization, it can handle queries using the old version of
+            the dataset, assuming you configured Redis to do so in redis.conf.
+            Otherwise, you can configure Redis slaves to return an error to clients if the
+            replication stream is down. However, after the initial sync, the old dataset
+            must be deleted and the new one must be loaded. The slave will block incoming
+            connections during this brief window.</p></li>
+            <li><p>Replication can be used both for scalability, in order to have
+            multiple slaves for read-only queries (for example, heavy <a href="http://redis.io/commands/sort">SORT</a>
+            operations can be offloaded to slaves), or simply for data redundancy.</p></li>
+            <li><p>It is possible to use replication to avoid the cost of having the master write the full dataset to disk: just configure your master <code>redis.conf</code> to avoid saving (just comment all the "save" directives), then connect a slave configured to save from time to time. However in this setup make sure masters don't restart automatically (please read the next section for more information).</p></li>
+            </ul>
+            
+            <span id="safety-of-replication-when-master-has-persistence-turned-off" class="anchor"></span><h2><a href="http://redis.io/topics/replication#safety-of-replication-when-master-has-persistence-turned-off" class="anchor-link">*</a>Safety of replication when master has persistence turned off</h2>
+            
+            <p>In setups where Redis replication is used, it is strongly advised to have
+            persistence turned on in the master, or when this is not possible, for example
+            because of latency concerns, instances should be configured to <strong>avoid restarting
+            automatically</strong>.</p>
+            
+            <p>To better understand why masters with persistence turned off configured to
+            auto restart are dangerous, check the following failure mode where data
+            is wiped from the master and all its slaves:</p>
+            
+            <ol>
+            <li>We have a setup with node A acting as master, with persistence turned down, and nodes B and C replicating from node A.</li>
+            <li>A crashes, however it has some auto-restart system, that restarts the process. However since persistence is turned off, the node restarts with an empty data set.</li>
+            <li>Nodes B and C will replicate from A, which is empty, so they'll effectively destroy their copy of the data.</li>
+            </ol>
+            
+            <p>When Redis Sentinel is used for high availability, also turning off persistence
+            on the master, together with auto restart of the process, is dangerous. For example the master can restart fast enough for Sentinel to don't detect a failure, so that the failure mode described above happens.</p>
+            
+            <p>Every time data safety is important, and replication is used with master configured without persistence, auto restart of instances should be disabled.</p>
+            
+            <span id="how-redis-replication-works" class="anchor"></span><h2><a href="http://redis.io/topics/replication#how-redis-replication-works" class="anchor-link">*</a>How Redis replication works</h2>
+            
+            <p>If you set up a slave, upon connection it sends a SYNC command. It doesn't
+            matter if it's the first time it has connected or if it's a reconnection.</p>
+            
+            <p>The master then starts background saving, and starts to buffer all new
+            commands received that will modify the dataset. When the background
+            saving is complete, the master transfers the database file to the slave,
+            which saves it on disk, and then loads it into memory. The master will
+            then send to the slave all buffered commands. This is done as a
+            stream of commands and is in the same format of the Redis protocol itself.</p>
+            
+            <p>You can try it yourself via telnet. Connect to the Redis port while the
+            server is doing some work and issue the <a href="http://redis.io/commands/sync">SYNC</a> command. You'll see a bulk
+            transfer and then every command received by the master will be re-issued
+            in the telnet session.</p>
+            
+            <p>Slaves are able to automatically reconnect when the master &lt;-&gt;
+            slave link goes down for some reason. If the master receives multiple
+            concurrent slave synchronization requests, it performs a single
+            background save in order to serve all of them.</p>
+            
+            <p>When a master and a slave reconnects after the link went down, a full resync
+            is always performed. However, starting with Redis 2.8, a partial resynchronization
+            is also possible.</p>
+            
+            <span id="partial-resynchronization" class="anchor"></span><h2><a href="http://redis.io/topics/replication#partial-resynchronization" class="anchor-link">*</a>Partial resynchronization</h2>
+            
+            <p>Starting with Redis 2.8, master and slave are usually able to continue the
+            replication process without requiring a full resynchronization after the
+            replication link went down.</p>
+            
+            <p>This works by creating an in-memory backlog of the replication stream on the
+            master side. The master and all the slaves agree on a <em>replication
+            offset</em> and a <em>master run id</em>, so when the link goes down, the slave will
+            reconnect and ask the master to continue the replication. Assuming the
+            master run id is still the same, and that the offset specified is available
+            in the replication backlog, replication will resume from the point where it left off.
+            If either of these conditions are unmet, a full resynchronization is performed
+            (which is the normal pre-2.8 behavior). As the run id of the connected master is not
+            persisted to disk, a full resynchronization is needed when the slave restarts.</p>
+            
+            <p>The new partial resynchronization feature uses the <code>PSYNC</code> command internally,
+            while the old implementation uses the <a href="http://redis.io/commands/sync">SYNC</a> command. Note that a Redis 2.8
+            slave is able to detect if the server it is talking with does not support
+            <code>PSYNC</code>, and will use <a href="http://redis.io/commands/sync">SYNC</a> instead.</p>
+            
+            <span id="diskless-replication" class="anchor"></span><h2><a href="http://redis.io/topics/replication#diskless-replication" class="anchor-link">*</a>Diskless replication</h2>
+            
+            <p>Normally a full resynchronization requires to create an RDB file on disk,
+            then reload the same RDB from disk in order to feed the slaves with the data.</p>
+            
+            <p>With slow disks this can be a very stressing operation for the master.
+            Redis version 2.8.18 will be the first version to have experimental support
+            for diskless replication. In this setup the child process directly sends the
+            RDB over the wire to slaves, without using the disk as intermediate storage.</p>
+            
+            <p>The feature is currently considered experimental.</p>
+            
+            <span id="configuration" class="anchor"></span><h2><a href="http://redis.io/topics/replication#configuration" class="anchor-link">*</a>Configuration</h2>
+            
+            <p>To configure replication is trivial: just add the following line to the slave
+            configuration file:</p>
+            
+            <pre><code>slaveof 192.168.1.1 6379
+</code></pre>
+            
+            <p>Of course you need to replace 192.168.1.1 6379 with your master IP address (or
+            hostname) and port. Alternatively, you can call the <a href="http://redis.io/commands/slaveof">SLAVEOF</a> command and the
+            master host will start a sync with the slave.</p>
+            
+            <p>There are also a few parameters for tuning the replication backlog taken
+            in memory by the master to perform the partial resynchronization. See the example
+            <code>redis.conf</code> shipped with the Redis distribution for more information.</p>
+            
+            <p>Diskless replication can be enabled using the <code>repl-diskless-sync</code> configuration
+            parameter. The delay to start the transfer in order to wait more slaves to
+            arrive after the first one, is controlled by the <code>repl-diskless-sync-delay</code>
+            parameter. Please refer to the example <code>redis.conf</code> file in the Redis distribution
+            for more details.</p>
+            
+            <span id="read-only-slave" class="anchor"></span><h2><a href="http://redis.io/topics/replication#read-only-slave" class="anchor-link">*</a>Read-only slave</h2>
+            
+            <p>Since Redis 2.6, slaves support a read-only mode that is enabled by default.
+            This behavior is controlled by the <code>slave-read-only</code> option in the redis.conf file, and can be enabled and disabled at runtime using <a href="http://redis.io/commands/config-set">CONFIG SET</a>.</p>
+            
+            <p>Read-only slaves will reject all write commands, so that it is not possible to write to a slave because of a mistake. This does not mean that the feature is intended to expose a slave instance to the internet or more generally to a network where untrusted clients exist, because administrative commands like <code>DEBUG</code> or <code>CONFIG</code> are still enabled. However, security of read-only instances can be improved by disabling commands in redis.conf using the <code>rename-command</code> directive.</p>
+            
+            <p>You may wonder why it is possible to revert the read-only setting
+            and have slave instances that can be target of write operations.
+            While those writes will be discarded if the slave and the master
+            resynchronize or if the slave is restarted, there are a few legitimate
+            use case for storing ephemeral data in writable slaves. However in the future
+            it is possible that this feature will be dropped.</p>
+            
+            <span id="setting-a-slave-to-authenticate-to-a-master" class="anchor"></span><h2><a href="http://redis.io/topics/replication#setting-a-slave-to-authenticate-to-a-master" class="anchor-link">*</a>Setting a slave to authenticate to a master</h2>
+            
+            <p>If your master has a password via <code>requirepass</code>, it's trivial to configure the
+            slave to use that password in all sync operations.</p>
+            
+            <p>To do it on a running instance, use <code>redis-cli</code> and type:</p>
+            
+            <pre><code>config set masterauth &lt;password&gt;
+</code></pre>
+            
+            <p>To set it permanently, add this to your config file:</p>
+            
+            <pre><code>masterauth &lt;password&gt;
+</code></pre>
+            
+            <span id="allow-writes-only-with-n-attached-replicas" class="anchor"></span><h2><a href="http://redis.io/topics/replication#allow-writes-only-with-n-attached-replicas" class="anchor-link">*</a>Allow writes only with N attached replicas</h2>
+            
+            <p>Starting with Redis 2.8, it is possible to configure a Redis master to
+            accept write queries only if at least N slaves are currently connected to the
+            master.</p>
+            
+            <p>However, because Redis uses asynchronous replication it is not possible to ensure
+            the slave actually received a given write, so there is always a window for data
+            loss.</p>
+            
+            <p>This is how the feature works:</p>
+            
+            <ul>
+            <li>Redis slaves ping the master every second, acknowledging the amount of replication stream processed.</li>
+            <li>Redis masters will remember the last time it received a ping from every slave.</li>
+            <li>The user can configure a minimum number of slaves that have a lag not greater than a maximum number of seconds.</li>
+            </ul>
+            
+            <p>If there are at least N slaves, with a lag less than M seconds, then the write will be accepted.</p>
+            
+            <p>You may think at it as a relaxed version of the "C" in the CAP theorem, where consistency is not ensured for a given write, but at least the time window for data loss is restricted to a given number of seconds.</p>
+            
+            <p>If the conditions are not met, the master will instead reply with an error and the write will not be accepted.</p>
+            
+            <p>There are two configuration parameters for this feature:</p>
+            
+            <ul>
+            <li>min-slaves-to-write <code>&lt;number of slaves&gt;</code></li>
+            <li>min-slaves-max-lag <code>&lt;number of seconds&gt;</code></li>
+            </ul>
+            
+            <p>For more information, please check the example <code>redis.conf</code> file shipped with the
+            Redis source distribution.</p>
+          </article>
+        </div>
+      </div>
+      <footer class="site-footer">
+        <div class="container">
+          <p>
+            This website is
+            <a href="https://github.com/antirez/redis-io">open source software</a>.
+            See all <a href="http://redis.io/topics/sponsors">credits</a>.
+          </p>
+          <div class="sponsor">
+            Sponsored by
+            <a href="https://redislabs.com/">
+              <img alt="Redis Labs" height="25" src="./Replication – Redis_files/redislabs.png" title="Get a Managed Redis" width="128">
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  
+
+<script src="./Replication – Redis_files/jquery.min.js"></script>
+<script src="./Replication – Redis_files/slideout.js"></script>
+<script src="./Replication – Redis_files/app.js"></script>
+<script type="text/javascript">
+lloogg_clientid = "20bb9c026e";
+</script>
+<script type="text/javascript" src="./Replication – Redis_files/l.js">
+</script>
+</body></html>
